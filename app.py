@@ -11,14 +11,14 @@ try:
 except Exception:
     model = None
 
-# Embedded HTML Template with full CSS styling and shadow effects
+# Integrated HTML/CSS with glassmorphism layout and drop-shadow depth effects
 HTML_LAYOUT = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linear Regression Predictor</title>
+    <title>House Price Predictor</title>
     <style>
         * {
             box-sizing: border-box;
@@ -34,7 +34,7 @@ HTML_LAYOUT = """
             align-items: center;
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
             color: #f8fafc;
-            padding: 20px;
+            padding: 30px 15px;
         }
 
         .card {
@@ -43,10 +43,10 @@ HTML_LAYOUT = """
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.125);
             border-radius: 20px;
-            padding: 40px;
+            padding: 35px;
             width: 100%;
-            max-width: 450px;
-            /* Multi-layered shadow effects for modern depth */
+            max-width: 550px;
+            /* Layered drop-shadow effects for visual depth */
             box-shadow: 
                 0 20px 25px -5px rgba(0, 0, 0, 0.5),
                 0 8px 10px -6px rgba(0, 0, 0, 0.3),
@@ -55,7 +55,7 @@ HTML_LAYOUT = """
         }
 
         .card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             box-shadow: 
                 0 25px 30px -5px rgba(0, 0, 0, 0.6),
                 0 12px 15px -6px rgba(0, 0, 0, 0.4),
@@ -72,25 +72,35 @@ HTML_LAYOUT = """
             -webkit-text-fill-color: transparent;
         }
 
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
             color: #cbd5e1;
         }
 
         input[type="number"] {
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px 14px;
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             color: #fff;
-            font-size: 1rem;
+            font-size: 0.95rem;
             outline: none;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -106,6 +116,7 @@ HTML_LAYOUT = """
         button {
             width: 100%;
             padding: 14px;
+            margin-top: 10px;
             background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
             border: none;
             border-radius: 12px;
@@ -145,26 +156,61 @@ HTML_LAYOUT = """
         }
 
         .result-value {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: #38bdf8;
+        }
+
+        @media (max-width: 480px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Linear Model Predictor</h2>
+        <h2>House Price Predictor</h2>
         <form method="POST" action="/predict">
-            <div class="form-group">
-                <label for="feature">Enter Input Value:</label>
-                <input type="number" step="any" id="feature" name="feature" required placeholder="e.g. 5.5">
+            <div class="grid-container">
+                <div class="form-group">
+                    <label>Square Footage</label>
+                    <input type="number" step="any" name="Square_Footage" required placeholder="e.g. 1500">
+                </div>
+                <div class="form-group">
+                    <label>Bedrooms</label>
+                    <input type="number" step="any" name="Num_Bedrooms" required placeholder="e.g. 3">
+                </div>
+                <div class="form-group">
+                    <label>Bathrooms</label>
+                    <input type="number" step="any" name="Num_Bathrooms" required placeholder="e.g. 2">
+                </div>
+                <div class="form-group">
+                    <label>Year Built</label>
+                    <input type="number" step="any" name="Year_Built" required placeholder="e.g. 2018">
+                </div>
+                <div class="form-group">
+                    <label>Lot Size (sq ft)</label>
+                    <input type="number" step="any" name="Lot_Size" required placeholder="e.g. 5000">
+                </div>
+                <div class="form-group">
+                    <label>Garage Size (cars)</label>
+                    <input type="number" step="any" name="Garage_Size" required placeholder="e.g. 2">
+                </div>
+                <div class="form-group full-width">
+                    <label>Neighborhood Quality (1-10)</label>
+                    <input type="number" step="any" name="Neighborhood_Quality" required placeholder="e.g. 8">
+                </div>
             </div>
-            <button type="submit">Calculate Prediction</button>
+            <button type="submit">Predict Price</button>
         </form>
 
         {% if prediction is not none %}
         <div class="result-box">
-            <div class="result-title">Predicted Result</div>
+            <div class="result-title">Estimated Value</div>
             <div class="result-value">{{ prediction }}</div>
         </div>
         {% endif %}
@@ -180,13 +226,24 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
-        return render_template_string(HTML_LAYOUT, prediction="Error: Model linear.pkl not loaded properly.")
+        return render_template_string(HTML_LAYOUT, prediction="Error: Model linear.pkl not found or unreadable.")
     
     try:
-        input_val = float(request.form['feature'])
-        features = np.array([[input_val]])
-        pred = model.predict(features)[0]
-        output = round(float(pred), 4)
+        # Extract features matching the model's exact expected sequence
+        features = [
+            float(request.form['Square_Footage']),
+            float(request.form['Num_Bedrooms']),
+            float(request.form['Num_Bathrooms']),
+            float(request.form['Year_Built']),
+            float(request.form['Lot_Size']),
+            float(request.form['Garage_Size']),
+            float(request.form['Neighborhood_Quality'])
+        ]
+        
+        final_input = np.array([features])
+        pred = model.predict(final_input)[0]
+        output = f"${round(float(pred), 2):,}"
+        
         return render_template_string(HTML_LAYOUT, prediction=output)
     except Exception as e:
         return render_template_string(HTML_LAYOUT, prediction=f"Error: {str(e)}")
