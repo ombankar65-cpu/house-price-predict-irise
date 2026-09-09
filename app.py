@@ -1,135 +1,125 @@
-import os
 import pickle
 import numpy as np
-import pandas as pd
 from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# Load pickle model safely
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'linear.pkl')
-model = None
-if os.path.exists(MODEL_PATH):
-    with open(MODEL_PATH, 'rb') as f:
+# Load the trained linear regression model
+try:
+    with open('linear.pkl', 'rb') as f:
         model = pickle.load(f)
+except Exception:
+    model = None
 
-# Define your categorical mappings here
-CATEGORICAL_OPTIONS = {
-    "Category": ["Category A", "Category B", "Category C"],
-    "Region": ["North", "South", "East", "West"]
-}
-
-# Single Inline HTML/CSS Template with dynamic shadow effects
-HTML_TEMPLATE = """
+# Embedded HTML Template with full CSS styling and shadow effects
+HTML_LAYOUT = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Prediction Interface</title>
+    <title>Linear Regression Predictor</title>
     <style>
-        :root {
-            --bg-color: #f4f7fe;
-            --card-bg: #ffffff;
-            --primary: #4318ff;
-            --primary-hover: #3311db;
-            --text-main: #1b2559;
-            --text-secondary: #a3edbe;
-            --border-color: #e0e5f2;
-            --shadow-soft: 0px 18px 40px rgba(112, 144, 176, 0.12);
-            --shadow-hover: 0px 24px 48px rgba(67, 24, 255, 0.18);
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 40px 20px;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            color: #f8fafc;
+            padding: 20px;
         }
 
-        .container {
-            background-color: var(--card-bg);
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.125);
             border-radius: 20px;
             padding: 40px;
             width: 100%;
-            max-width: 480px;
-            box-shadow: var(--shadow-soft);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            max-width: 450px;
+            /* Multi-layered shadow effects for modern depth */
+            box-shadow: 
+                0 20px 25px -5px rgba(0, 0, 0, 0.5),
+                0 8px 10px -6px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(99, 102, 241, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .container:hover {
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-2px);
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 25px 30px -5px rgba(0, 0, 0, 0.6),
+                0 12px 15px -6px rgba(0, 0, 0, 0.4),
+                0 0 50px rgba(99, 102, 241, 0.25);
         }
 
         h2 {
-            color: var(--text-main);
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-size: 26px;
-            font-weight: 700;
-        }
-
-        p.subtitle {
-            color: #7090b0;
-            font-size: 14px;
-            margin-bottom: 28px;
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 1.8rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
 
         label {
             display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-main);
             margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
         }
 
-        input[type="number"], select {
+        input[type="number"] {
             width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
+            padding: 14px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            font-size: 14px;
-            color: var(--text-main);
-            background-color: #fff;
-            box-sizing: border-box;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: inset 0px 2px 4px rgba(0,0,0,0.02);
         }
 
-        input[type="number"]:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.15);
+        input[type="number"]:focus {
+            border-color: #818cf8;
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.4),
+                0 0 0 3px rgba(129, 140, 248, 0.25);
         }
 
         button {
             width: 100%;
             padding: 14px;
-            background-color: var(--primary);
-            color: #fff;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
             border: none;
             border-radius: 12px;
-            font-size: 16px;
+            color: #ffffff;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            box-shadow: 0px 10px 20px rgba(67, 24, 255, 0.25);
-            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-            margin-top: 10px;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+            transition: opacity 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
         }
 
         button:hover {
-            background-color: var(--primary-hover);
-            box-shadow: 0px 14px 24px rgba(67, 24, 255, 0.35);
+            opacity: 0.95;
+            box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.55);
         }
 
         button:active {
@@ -137,90 +127,69 @@ HTML_TEMPLATE = """
         }
 
         .result-box {
-            margin-top: 28px;
+            margin-top: 24px;
             padding: 16px;
-            background: #f4f7fe;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(129, 140, 248, 0.3);
             border-radius: 12px;
             text-align: center;
-            border: 1px solid var(--border-color);
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .result-box h3 {
-            margin: 0;
-            color: var(--primary);
-            font-size: 22px;
+        .result-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #38bdf8;
         }
     </style>
 </head>
 <body>
+    <div class="card">
+        <h2>Linear Model Predictor</h2>
+        <form method="POST" action="/predict">
+            <div class="form-group">
+                <label for="feature">Enter Input Value:</label>
+                <input type="number" step="any" id="feature" name="feature" required placeholder="e.g. 5.5">
+            </div>
+            <button type="submit">Calculate Prediction</button>
+        </form>
 
-<div class="container">
-    <h2>Linear Model Prediction</h2>
-    <p class="subtitle">Select your values below to trigger predictions.</p>
-
-    <form action="/predict" method="POST">
-        <div class="form-group">
-            <label for="numerical_feature">Numerical Input Value</label>
-            <input type="number" step="any" name="numerical_feature" placeholder="e.g. 10.5" required>
+        {% if prediction is not none %}
+        <div class="result-box">
+            <div class="result-title">Predicted Result</div>
+            <div class="result-value">{{ prediction }}</div>
         </div>
-
-        {% for cat_name, options in cat_dict.items() %}
-        <div class="form-group">
-            <label for="{{ cat_name }}">{{ cat_name }}</label>
-            <select name="{{ cat_name }}" id="{{ cat_name }}" required>
-                {% for option in options %}
-                    <option value="{{ option }}">{{ option }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        {% endfor %}
-
-        <button type="submit">Predict</button>
-    </form>
-
-    {% if prediction_text %}
-    <div class="result-box">
-        <h3>{{ prediction_text }}</h3>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
-
 </body>
 </html>
 """
 
 @app.route('/', methods=['GET'])
-def index():
-    return render_template_string(HTML_TEMPLATE, cat_dict=CATEGORICAL_OPTIONS)
+def home():
+    return render_template_string(HTML_LAYOUT, prediction=None)
 
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
-        return render_template_string(HTML_TEMPLATE, cat_dict=CATEGORICAL_OPTIONS, prediction_text="Error: linear.pkl not loaded properly.")
+        return render_template_string(HTML_LAYOUT, prediction="Error: Model linear.pkl not loaded properly.")
     
     try:
-        num_val = float(request.form.get('numerical_feature', 0))
-        cat_inputs = {cat: request.form.get(cat) for cat in CATEGORICAL_OPTIONS.keys()}
-
-        # Construct input DataFrame matching categorical type encoding
-        input_data = {'numerical_feature': [num_val]}
-        for cat_name, cat_val in cat_inputs.items():
-            input_data[cat_name] = pd.Categorical([cat_val], categories=CATEGORICAL_OPTIONS[cat_name])
-
-        df_input = pd.DataFrame(input_data)
-        
-        # Standard raw matrix prediction alternative if One-Hot Encoded manually:
-        # feature_array = np.array([num_val, ...])
-        # prediction = model.predict(feature_array.reshape(1, -1))[0]
-
-        prediction = model.predict(df_input)[0]
-        result_str = f"Result: {round(float(prediction), 4)}"
-
+        input_val = float(request.form['feature'])
+        features = np.array([[input_val]])
+        pred = model.predict(features)[0]
+        output = round(float(pred), 4)
+        return render_template_string(HTML_LAYOUT, prediction=output)
     except Exception as e:
-        result_str = f"Prediction Error: {str(e)}"
-
-    return render_template_string(HTML_TEMPLATE, cat_dict=CATEGORICAL_OPTIONS, prediction_text=result_str)
+        return render_template_string(HTML_LAYOUT, prediction=f"Error: {str(e)}")
 
 if __name__ == '__main__':
     app.run(debug=True)
